@@ -87,122 +87,110 @@
     const db = firebase.database(app);
 
     function loadProductsFromDatabase() {
-      const loader = document.getElementById('loader');
-      const productList = document.getElementById('product-list');
-      const categorySelect = document.getElementById('category-select');
-      loader.style.display = 'block';
-      const categorySections = {};
+  const loader = document.getElementById('loader');
+  const productList = document.getElementById('product-list');
+  const categorySelect = document.getElementById('category-select');
+  loader.style.display = 'block';
+  const categorySections = {};
 
-      db.ref('products').on('value', (snapshot) => {
-        const data = snapshot.val();
-        productList.innerHTML = '';
-        categorySelect.innerHTML = '<option value="all">كل الأقسام</option>';
+  db.ref('products').on('value', (snapshot) => {
+    const data = snapshot.val();
+    productList.innerHTML = '';
+    categorySelect.innerHTML = '<option value="all">كل الأقسام</option>';
 
-        if (data) {
-          Object.keys(data).forEach(category => {
-            const sectionDiv = document.createElement('div');
-            sectionDiv.classList.add('mb-5');
-            sectionDiv.setAttribute('data-category', category);
+    if (data) {
+      Object.keys(data).forEach(category => {
+        const sectionDiv = document.createElement('div');
+        sectionDiv.classList.add('mb-5');
+        sectionDiv.setAttribute('data-category', category);
 
-            const categoryHeader = document.createElement('div');
-            categoryHeader.classList.add('d-flex', 'justify-content-between', 'align-items-center', 'mb-2');
-            const categoryBtn = document.createElement('button');
-            categoryBtn.classList.add('btn', 'btn-outline-success');
-            categoryBtn.textContent = category;
-            categoryBtn.onclick = () => window.location.href = `category.html?name=${encodeURIComponent(category)}`;
-            categoryHeader.appendChild(categoryBtn);
+        const categoryHeader = document.createElement('div');
+        categoryHeader.classList.add('d-flex', 'justify-content-between', 'align-items-center', 'mb-2');
+        const categoryBtn = document.createElement('button');
+        categoryBtn.classList.add('btn', 'btn-outline-success');
+        categoryBtn.textContent = category;
+        categoryBtn.onclick = () => window.location.href = `category.html?name=${encodeURIComponent(category)}`;
+        categoryHeader.appendChild(categoryBtn);
 
-            const showMoreBtn = document.createElement('button');
-            showMoreBtn.classList.add('btn', 'btn-sm', 'btn-secondary');
-            showMoreBtn.textContent = 'عرض المزيد';
-            showMoreBtn.onclick = categoryBtn.onclick;
-            categoryHeader.appendChild(showMoreBtn);
-            sectionDiv.appendChild(categoryHeader);
+        const showMoreBtn = document.createElement('button');
+        showMoreBtn.classList.add('btn', 'btn-sm', 'btn-secondary');
+        showMoreBtn.textContent = 'عرض المزيد';
+        showMoreBtn.onclick = categoryBtn.onclick;
+        categoryHeader.appendChild(showMoreBtn);
+        sectionDiv.appendChild(categoryHeader);
 
-            const searchInput = document.createElement('input');
-            searchInput.type = 'text';
-            searchInput.placeholder = 'ابحث في هذا القسم...';
-            searchInput.classList.add('form-control', 'mb-3');
-            sectionDiv.appendChild(searchInput);
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = 'ابحث في هذا القسم...';
+        searchInput.classList.add('form-control', 'mb-3');
+        sectionDiv.appendChild(searchInput);
 
-            const sliderContainer = document.createElement('div');
-            sliderContainer.classList.add('position-relative');
-            const slider = document.createElement('div');
-            slider.classList.add('d-flex', 'overflow-auto', 'px-2');
-            slider.style.scrollBehavior = 'smooth';
-            slider.style.gap = '1rem';
-            slider.style.padding = '1rem 0';
+        const sliderContainer = document.createElement('div');
+        sliderContainer.classList.add('position-relative');
+        const slider = document.createElement('div');
+        slider.classList.add('d-flex', 'overflow-auto', 'px-2');
+        slider.style.scrollBehavior = 'smooth';
+        slider.style.gap = '1rem';
+        slider.style.padding = '1rem 0';
 
-            const sectionCards = [];
-            const products = Array.isArray(data[category]) ? data[category] : Object.values(data[category]);
-            products.forEach(product => {
-              const productCard = document.createElement('div');
-              productCard.style.minWidth = '300px';
-              productCard.style.maxWidth = '300px';
-              productCard.classList.add('flex-shrink-0');
-              productCard.innerHTML = `
-  <div class="card h-100">
-    <img src="${product.image}" class="card-img-top" alt="${product.name}">
-    <div class="card-body">
-      <h5 class="card-title">${product.name}</h5>
-      <p class="card-text">السعر: ${product.price} جنيه</p>
-      <div class="mb-2">
-        <label class="form-label">الكمية:</label>
-        <input type="number" min="1" max="20" value="1" class="form-control form-control-sm" id="qty-${product.name}">
-      </div>
-      <button class="btn btn-primary mb-2" onclick='addToCart(${JSON.stringify(product)})'>اضف الى السلة</button>
-      <button class="btn btn-outline-secondary btn-sm" onclick='viewProduct(${JSON.stringify(product)})'>عرض التفاصيل</button>
-    </div>
-  </div>`;
-              slider.appendChild(productCard);
-              sectionCards.push({ element: productCard, name: product.name });
-            });
+        const sectionCards = [];
+        const products = Array.isArray(data[category]) ? data[category] : Object.values(data[category]);
+        products.forEach(product => {
+          const productCategory = product.category || 'غير مخزن'; // تحديد القسم أو عرض "غير مخزن"
+          const productCard = document.createElement('div');
+          productCard.style.minWidth = '300px';
+          productCard.style.maxWidth = '300px';
+          productCard.classList.add('flex-shrink-0');
+          productCard.innerHTML = `
+            <div class="card h-100">
+              <img src="${product.image}" class="card-img-top" alt="${product.name}">
+              <div class="card-body">
+                <h5 class="card-title">${product.name}</h5>
+                <p class="card-text">${product.description || 'منتجاتنا طازجة يومياً'}</p>
+                <p class="card-text">السعر: ${product.price} جنيه</p>
+                <p class="card-text"><strong>القسم: </strong>${productCategory}</p> <!-- عرض القسم -->
+                <div class="mb-2">
+                  <label class="form-label">الكمية:</label>
+                  <input type="number" min="1" max="20" value="1" class="form-control form-control-sm" id="qty-${product.name}">
+                </div>
+                <button class="btn btn-primary mb-2" onclick='addToCart(${JSON.stringify(product)})'>اضف الى السلة</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick='viewProduct(${JSON.stringify(product)})'>عرض التفاصيل</button>
+              </div>
+            </div>`;
+          slider.appendChild(productCard);
+          sectionCards.push({ element: productCard, name: product.name });
+        });
 
-            const leftBtn = document.createElement('button');
-            leftBtn.classList.add('btn', 'btn-light', 'position-absolute', 'top-50', 'start-0', 'translate-middle-y', 'shadow');
-            leftBtn.innerHTML = '&larr;';
-            leftBtn.style.zIndex = '2';
-            leftBtn.onclick = () => slider.scrollBy({ left: -1000, behavior: 'smooth' });
+        const leftBtn = document.createElement('button');
+        leftBtn.classList.add('btn', 'btn-light', 'position-absolute', 'top-50', 'start-0', 'translate-middle-y', 'shadow');
+        leftBtn.innerHTML = '&larr;';
+        leftBtn.style.zIndex = '2';
+        leftBtn.onclick = () => slider.scrollBy({ left: -1000, behavior: 'smooth' });
 
-            const rightBtn = document.createElement('button');
-            rightBtn.classList.add('btn', 'btn-light', 'position-absolute', 'top-50', 'end-0', 'translate-middle-y', 'shadow');
-            rightBtn.innerHTML = '&rarr;';
-            rightBtn.style.zIndex = '2';
-            rightBtn.onclick = () => slider.scrollBy({ left: 1000, behavior: 'smooth' });
+        const rightBtn = document.createElement('button');
+        rightBtn.classList.add('btn', 'btn-light', 'position-absolute', 'top-50', 'end-0', 'translate-middle-y', 'shadow');
+        rightBtn.innerHTML = '&rarr;';
+        rightBtn.style.zIndex = '2';
+        rightBtn.onclick = () => slider.scrollBy({ left: 1000, behavior: 'smooth' });
 
-            searchInput.addEventListener('input', () => {
-              const value = searchInput.value.toLowerCase();
-              sectionCards.forEach(card => {
-                card.element.style.display = card.name.toLowerCase().includes(value) ? 'block' : 'none';
-              });
-            });
+        sliderContainer.appendChild(leftBtn);
+        sliderContainer.appendChild(slider);
+        sliderContainer.appendChild(rightBtn);
+        sectionDiv.appendChild(sliderContainer);
 
-            sliderContainer.appendChild(leftBtn);
-            sliderContainer.appendChild(slider);
-            sliderContainer.appendChild(rightBtn);
-            sectionDiv.appendChild(sliderContainer);
-            productList.appendChild(sectionDiv);
-
-            categorySections[category] = sectionDiv;
-
-            const option = document.createElement('option');
-            option.value = category;
-            option.textContent = category;
-            categorySelect.appendChild(option);
-          });
-
-          categorySelect.addEventListener('change', () => {
-            const selected = categorySelect.value;
-            loader.style.display = 'block';
-            Object.keys(categorySections).forEach(cat => {
-              categorySections[cat].style.display = (selected === 'all' || selected === cat) ? 'block' : 'none';
-            });
-            setTimeout(() => loader.style.display = 'none', 500);
-          });
-        }
-        loader.style.display = 'none';
-      }, error => console.error('Error loading products: ', error));
+        categorySections[category] = sectionDiv;
+        categorySelect.innerHTML += `<option value="${category}">${category}</option>`;
+        productList.appendChild(sectionDiv);
+      });
     }
+
+    loader.style.display = 'none';
+  }, (error) => {
+    alert('فشل تحميل المنتجات، حاول لاحقًا.');
+    loader.style.display = 'none';
+  });
+}
+
 
     const cart = [];
 
@@ -223,53 +211,6 @@
   showAddedMessage();
   updateCartUI();
 }
-
-function handleOrderSubmission(event) {
-  event.preventDefault();
-
-  const customerName = document.getElementById('customer-name').value;
-  const customerPhone = document.getElementById('customer-phone').value;
-  const customerEmail = document.getElementById('customer-email').value;
-  const customerAltPhone = document.getElementById('customer-alt-phone').value;
-  const customerAddress = document.getElementById('customer-address').value;
-  const customerNotes = document.getElementById('customer-notes').value;
-
-  if (!customerName || !customerPhone || !customerEmail || !customerAddress) {
-    alert("يرجى ملء جميع البيانات الأساسية");
-    return;
-  }
-
-  const orderID = generateOrderID();
-
-  const order = {
-    orderID: orderID,
-    customerName: customerName,
-    customerPhone: customerPhone,
-    customerEmail: customerEmail,
-    customerAltPhone: customerAltPhone,
-    customerAddress: customerAddress,
-    customerNotes: customerNotes,
-    items: cart.map(item => ({
-      name: item.name, 
-      price: item.price, 
-      quantity: item.quantity
-    })), // تخزين المنتج بدون رابط الصورة
-    totalAmount: calculateTotal(),
-    status: "قيد المعالجة",
-    date: new Date().toISOString()
-  };
-
-  db.ref('orders/' + orderID).set(order, (error) => {
-    if (error) {
-      console.error("Error saving order: ", error);
-    } else {
-      alert("تم تقديم الطلب بنجاح!");
-      resetCart();
-      resetCustomerForm();
-    }
-  });
-}
-
 
     function showAddedMessage() {
       const message = document.getElementById('added-message');
