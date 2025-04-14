@@ -86,7 +86,7 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database(app);
 
-       function loadProductsFromDatabase() {
+    function loadProductsFromDatabase() {
   const loader = document.getElementById('loader');
   const productList = document.getElementById('product-list');
   const categorySelect = document.getElementById('category-select');
@@ -121,6 +121,7 @@
 
         sectionDiv.appendChild(categoryHeader);
 
+        // إضافة مربع البحث
         const searchInput = document.createElement('input');
         searchInput.type = 'text';
         searchInput.placeholder = 'ابحث في هذا القسم...';
@@ -138,7 +139,8 @@
 
         const products = Array.isArray(data[category]) ? data[category] : Object.values(data[category]);
 
-        products.forEach(product => {
+        // حفظ المنتجات داخل القسم
+        const productCards = products.map(product => {
           const productCategory = product.category || 'غير مخزن';
           const productCard = document.createElement('div');
           productCard.style.minWidth = '300px';
@@ -160,9 +162,14 @@
                 <button class="btn btn-outline-secondary btn-sm" onclick='viewProduct(${JSON.stringify(product)})'>عرض التفاصيل</button>
               </div>
             </div>`;
-          slider.appendChild(productCard);
+          return productCard;
         });
 
+        // إضافة كل بطاقات المنتجات إلى الـ slider
+        productCards.forEach(card => slider.appendChild(card));
+        sliderContainer.appendChild(slider);
+
+        // إضافة أزرار التمرير
         const leftBtn = document.createElement('button');
         leftBtn.classList.add('btn', 'btn-light', 'position-absolute', 'top-50', 'start-0', 'translate-middle-y', 'shadow');
         leftBtn.innerHTML = '&larr;';
@@ -176,13 +183,12 @@
         rightBtn.onclick = () => slider.scrollBy({ left: 1000, behavior: 'smooth' });
 
         sliderContainer.appendChild(leftBtn);
-        sliderContainer.appendChild(slider);
         sliderContainer.appendChild(rightBtn);
 
         sectionDiv.appendChild(sliderContainer);
 
         // حفظ القسم في الكائن
-        categorySections[category] = sectionDiv;
+        categorySections[category] = { sectionDiv, productCards, searchInput };
 
         // إضافة الخيار للقائمة المنسدلة
         categorySelect.innerHTML += `<option value="${category}">${category}</option>`;
@@ -191,17 +197,47 @@
         productList.appendChild(sectionDiv);
       });
 
-      // ✨ هنا نضيف حدث الفلترة على السيليكت
-      categorySelect.onchange = function () {
-        const selectedCategory = this.value;
-        Object.keys(categorySections).forEach(cat => {
-          if (selectedCategory === 'all' || cat === selectedCategory) {
-            categorySections[cat].style.display = '';
-          } else {
-            categorySections[cat].style.display = 'none';
-          }
+      // إضافة معالج للبحث في كل قسم
+      Object.values(categorySections).forEach(({ searchInput, productCards }) => {
+        searchInput.addEventListener('input', (e) => {
+          const searchText = e.target.value.toLowerCase();
+
+          productCards.forEach(card => {
+            const cardTitle = card.querySelector('.card-title').textContent.toLowerCase();
+            const cardDescription = card.querySelector('.card-text').textContent.toLowerCase();
+
+            if (cardTitle.includes(searchText) || cardDescription.includes(searchText)) {
+              card.style.display = '';
+            } else {
+              card.style.display = 'none';
+            }
+          });
         });
-      };
+      });
+
+      // إضافة معالج الحدث للقائمة المنسدلة لتصفية المنتجات حسب القسم
+      categorySelect.addEventListener('change', (e) => {
+        const selectedCategory = e.target.value;
+
+        // إخفاء كل الأقسام
+        Object.values(categorySections).forEach(({ sectionDiv }) => {
+          sectionDiv.style.display = 'none';
+        });
+
+        // إذا اختار المستخدم "كل الأقسام"، عرض كل الأقسام
+        if (selectedCategory === 'all') {
+          Object.values(categorySections).forEach(({ sectionDiv }) => {
+            sectionDiv.style.display = '';
+          });
+        } else {
+          // إظهار القسم الذي يتوافق مع الفئة المحددة
+          const selectedCategorySection = categorySections[selectedCategory];
+          if (selectedCategorySection) {
+            selectedCategorySection.sectionDiv.style.display = '';
+          }
+        }
+      });
+
     }
 
     loader.style.display = 'none';
@@ -210,9 +246,6 @@
     loader.style.display = 'none';
   });
 }
-
-
-
     const cart = [];
 
     function addToCart(product) {
