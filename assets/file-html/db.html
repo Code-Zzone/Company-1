@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قائمة العملاء والطلبات</title>
+  <!-- تحميل Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+        direction: rtl;
+    }
+    /* إضافة لودر */
+    #loading {
+      display: none;
+      text-align: center;
+      font-size: 24px;
+      margin-top: 50px;
+    }
+    /* تحسين مظهر البحث */
+    .search-container {
+      margin-bottom: 20px;
+    }
+    /* تفاصيل العمليات */
+    .stats-container {
+      margin-top: 30px;
+      display: none;
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .stat-item {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .toggle-btn {
+      font-size: 18px;
+      cursor: pointer;
+      color: #007bff;
+      text-decoration: underline;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h1 class="text-center mb-4">قائمة العملاء والطلبات</h1>
+
+    <!-- عرض عدد العمليات -->
+    <h4 id="order-count" class="text-center mb-4">عدد العمليات: 0</h4>
+
+    <!-- عرض آخر عملية تمت -->
+<h5 id="last-order-time" class="text-center mb-4">آخر عملية تمت منذ 0 دقيقة</h5>
+
+    <!-- محرك البحث -->
+    <div class="search-container">
+      <input type="text" id="search-input" class="form-control" placeholder="ابحث بالاسم أو بالرقم التعريفي...">
+    </div>
+
+    <div id="loading">جاري تحميل البيانات...</div>
+    <div id="customers" class="row"></div>
+
+    <!-- زر فتح وغلق تفاصيل العمليات -->
+    <div class="text-center my-4">
+      <button id="toggle-details" class="btn btn-info">عرض تفاصيل العمليات</button>
+    </div>
+
+    <!-- تفاصيل العمليات -->
+    <div id="stats-container" class="stats-container">
+      <h3>تفاصيل العمليات:</h3>
+      <p class="stat-item" id="total-orders-today">إجمالي عدد العمليات اليوم: 0</p>
+      <p class="stat-item" id="total-amount-today">إجمالي مبلغ العمليات اليوم: 0 جنيه</p>
+      <p class="stat-item" id="total-orders-month">إجمالي عدد العمليات هذا الشهر: 0</p>
+      <p class="stat-item" id="total-amount-month">إجمالي مبلغ العمليات هذا الشهر: 0 جنيه</p>
+    </div>
+  </div>
+
+  <!-- تحميل JavaScript الخاص بـ Bootstrap 5 -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+  <!-- تحميل Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+
+
+
+  <script type="module">
+    // إعداد Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBJkpqCGBRITqc66TQtkdQ_Rj0Jwd5uhZI",
+      authDomain: "company-23271.firebaseapp.com",
+      databaseURL: "https://company-23271-default-rtdb.firebaseio.com",
+      projectId: "company-23271",
+      storageBucket: "company-23271.firebasestorage.app",
+      messagingSenderId: "48019146673",
+      appId: "1:48019146673:web:b4f7bc91bb169c43b29f90"
+    };
+
+    // تهيئة Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const customersRef = db.ref("customers");
+
+    // مرجع لتخزين إجمالي العمليات والمبالغ
+    const dailyStatsRef = db.ref("daily_stats");
+    const monthlyStatsRef = db.ref("monthly_stats");
+
+    // إعداد المتغيرات لتخزين المبالغ وعدد العمليات
+    let totalAmountToday = 0;
+    let totalAmountThisMonth = 0;
+    let totalOrdersToday = 0;
+    let totalOrdersThisMonth = 0;
+
+    // إظهار اللودر أثناء تحميل البيانات
+    document.getElementById('loading').style.display = 'block';
+
+    let customersData = [];
+    let orderCount = 0;
+
+    // الحصول على بيانات العملاء
+    customersRef.on('child_added', snapshot => {
+  const customer = snapshot.val();
+  const customerId = snapshot.key;
+
+  // تحديث عدد العمليات والمبالغ
+  const today = new Date();
+  const currentDate = today.toISOString().split('T')[0];  // التاريخ بصيغة YYYY-MM-DD
+  const currentMonth = today.toISOString().split('T')[0].slice(0, 7); // الشهر بصيغة YYYY-MM
+
+  const customerTotalAmount = customer.totalAmount;
+
+  // تحديث إجمالي العمليات والمبالغ لهذا اليوم
+  if (new Date(customer.timestamp).toISOString().split('T')[0] === currentDate) {
+    totalAmountToday += customerTotalAmount;
+    totalOrdersToday++;
+  }
+
+  // تحديث إجمالي العمليات والمبالغ لهذا الشهر
+  if (new Date(customer.timestamp).toISOString().split('T')[0].slice(0, 7) === currentMonth) {
+    totalAmountThisMonth += customerTotalAmount;
+    totalOrdersThisMonth++;
+  }
+
+  // تخزين البيانات في Firebase
+  dailyStatsRef.set({
+    totalOrders: totalOrdersToday,
+    totalAmount: totalAmountToday
+  });
+
+  monthlyStatsRef.set({
+    totalOrders: totalOrdersThisMonth,
+    totalAmount: totalAmountThisMonth
+  });
+
+  // إنشاء بطاقة العميل
+  const customerCard = document.createElement('div');
+  customerCard.className = 'col-12 col-md-4 col-lg-3 mb-4 customer-card';
+  customerCard.setAttribute('data-id', customerId);
+  const orderTimestamp = new Date(customer.timestamp); // الوقت الذي تمت فيه العملية
+  const formattedTime = orderTimestamp.toLocaleString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  customerCard.innerHTML = `
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">${customer.name}</h5>
+        <p class="card-text"><strong>معرف العملية:</strong> ${customerId}</p>
+        <p class="card-text"><strong>العنوان:</strong> ${customer.address}</p>
+        <p class="card-text"><strong>رقم الهاتف:</strong> ${customer.phone}</p>
+        ${customer.altPhone ? `<p class="card-text"><strong>رقم الهاتف الآخر:</strong> ${customer.altPhone}</p>` : ''}
+        <p class="card-text"><strong>البريد الإلكتروني:</strong> ${customer.email}</p>
+        <p class="card-text"><strong>التاريخ:</strong> ${new Date(customer.timestamp).toLocaleDateString()}</p>
+        <p class="card-text"><strong>الإجمالي:</strong> ${customer.totalAmount} جنيه</p>
+        <p class="card-text"><strong>وقت العملية:</strong> ${formattedTime}</p> <!-- إضافة الوقت -->
+        
+        <a class="btn btn-info" data-bs-toggle="collapse" href="#orders-${customerId}" role="button" aria-expanded="false" aria-controls="orders-${customerId}">
+          عرض الطلب
+        </a>
+
+        <div class="collapse" id="orders-${customerId}">
+          <div class="card card-body mt-3">
+            <ul class="list-group">
+              ${Object.keys(customer.order).map(orderId => {
+                const order = customer.order[orderId];
+                return `
+                  <li class="list-group-item">
+                    <strong>${order.name}</strong>
+                    <p>الكمية: ${order.quantity}</p>
+                    <p>السعر: ${order.price} جنيه</p>
+                    <p>الإجمالي: ${order.total} جنيه</p>
+                  </li>
+                `;
+              }).join('')}
+            </ul>
+          </div>
+        </div>
+        <a class="btn btn-primary mt-3" href="invoice.html?customerId=${customerId}" target="_blank">إنشاء الفاتورة</a>
+
+      </div>
+    </div>
+  `;
+
+  // إضافة بطاقة العميل إلى الصفحة
+  document.getElementById('customers').appendChild(customerCard);
+
+  // حفظ بيانات العميل في مصفوفة للعمل بها لاحقًا
+  customersData.push({ id: customerId, card: customerCard });
+
+  // إخفاء اللودر عند الانتهاء من تحميل البيانات
+  document.getElementById('loading').style.display = 'none';
+
+  // تحديث عدد العمليات
+  orderCount++;
+  document.getElementById('order-count').textContent = `عدد العمليات: ${orderCount}`;
+
+  // إظهار التنبيه عند إضافة عملية جديدة
+  const alert = document.getElementById('new-order-alert');
+  alert.style.display = 'block';
+
+  // إخفاء التنبيه بعد 3 ثواني
+  setTimeout(() => {
+    alert.style.display = 'none';
+  }, 3000);
+});
+
+    // محرك البحث
+    document.getElementById('search-input').addEventListener('input', function() {
+      const query = this.value.toLowerCase();
+
+      customersData.forEach(customer => {
+        const name = customer.card.querySelector('.card-title').textContent.toLowerCase();
+        const processId = customer.card.querySelector('.card-text').textContent.toLowerCase();
+
+        if (name.includes(query) || processId.includes(query)) {
+          customer.card.style.display = 'block';
+        } else {
+          customer.card.style.display = 'none';
+        }
+      });
+    });
+
+    // عند الضغط على زر "تفاصيل العمليات"
+    document.getElementById('toggle-details').addEventListener('click', function() {
+      const statsContainer = document.getElementById('stats-container');
+      if (statsContainer.style.display === 'block') {
+        statsContainer.style.display = 'none';
+        this.textContent = 'عرض تفاصيل العمليات';
+      } else {
+        // تحديث تفاصيل العمليات بشكل لحظي
+        document.getElementById('total-orders-today').textContent = `إجمالي عدد العمليات اليوم: ${totalOrdersToday}`;
+        document.getElementById('total-amount-today').textContent = `إجمالي مبلغ العمليات اليوم: ${totalAmountToday} جنيه`;
+        document.getElementById('total-orders-month').textContent = `إجمالي عدد العمليات هذا الشهر: ${totalOrdersThisMonth}`;
+        document.getElementById('total-amount-month').textContent = `إجمالي مبلغ العمليات هذا الشهر: ${totalAmountThisMonth} جنيه`;
+
+        statsContainer.style.display = 'block';
+        this.textContent = 'إخفاء تفاصيل العمليات';
+      }
+    });
+
+// متغير لتخزين الوقت الذي تمت فيه آخر عملية
+let lastOrderTimestamp = 0;
+
+// دالة لتحديث الوقت منذ آخر عملية تمت
+function updateLastOrderTime() {
+  const now = new Date(); // الوقت الحالي
+  const timeDiff = now - lastOrderTimestamp; // فرق الوقت بالمللي ثانية
+
+  const seconds = Math.floor(timeDiff / 1000); // تحويل الفرق إلى ثواني
+  const minutes = Math.floor(seconds / 60); // تحويل الفرق إلى دقائق
+  const hours = Math.floor(minutes / 60); // تحويل الفرق إلى ساعات
+  const days = Math.floor(hours / 24); // تحويل الفرق إلى أيام
+
+  let timeMessage = "آخر عملية تمت منذ ";
+
+  if (days > 0) {
+    timeMessage += `${days} يوم${days > 1 ? 'ان' : ''}`;
+  } else if (hours > 0) {
+    timeMessage += `${hours} ساعة${hours > 1 ? 'ات' : ''}`;
+  } else if (minutes > 0) {
+    timeMessage += `${minutes} دقيقة${minutes > 1 ? 'ات' : ''}`;
+  } else {
+    timeMessage += `${seconds} ثانية`;
+  }
+
+  // تحديث النص في العنصر
+  document.getElementById('last-order-time').textContent = timeMessage;
+}
+
+// تحديث الوقت عند إضافة عملية جديدة
+customersRef.on('child_added', snapshot => {
+  const customer = snapshot.val();
+  lastOrderTimestamp = new Date(customer.timestamp); // تخزين وقت آخر عملية
+
+  // تحديث الوقت في الصفحة
+  updateLastOrderTime();
+});
+
+// التحديث المستمر كل دقيقة للتأكد من دقة الوقت
+setInterval(updateLastOrderTime, 60000); // التحديث كل دقيقة
+
+  </script>
+</body>
+</html>

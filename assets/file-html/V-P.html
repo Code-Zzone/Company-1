@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قسم الخضراوات والفواكة</title>
+  <style>
+    /* أضف هنا التنسيق كما كان في الكود السابق */
+
+    .products {
+      width: 100%;
+
+      display: flex !important;
+      flex-direction: column !important;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+    }
+    .product {
+      border: 1px solid #ddd;
+      padding: 0;
+      margin: 10px;
+      display: flex;
+      text-align: center;
+      justify-content: center;
+      flex-direction: column;
+     width:200px;
+      
+    }
+
+    .product img {
+      width: 100% !important;
+      height: 150px ;
+      object-fit: cover;
+      margin-bottom: 10px;
+    }
+    .product h3 {}
+    .product p {font-weight: bold;}
+    .product div {
+      background-color: #FAFAFA		;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      column-gap: 10%;
+      padding: 10px 0;
+      width: 100%;
+    }
+    .product div button {
+      font-size: 20px;
+       cursor: pointer;
+      padding: 5px 10px;
+    }
+
+    .product div button:hover , .product button:hover {
+      background-color: rgba(0, 0, 0, 0.482);
+      cursor: pointer;
+    }
+    .product div span {font-size: 20px;}
+    .product button  {
+      padding: 10px 0;
+    }
+
+    .cart {
+    
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+    }
+    .cart span {
+      background-color: red;
+      color: white;
+      border-radius: 50%;
+      padding: 3px 8px;
+      font-size: 12px;
+    }
+    #order-details {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      background-color: white;
+      padding: 50px;
+      border: 1px solid #ddd;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      background-color: #00000075;
+      color: wheat;
+    }
+
+    #order-details h2 {
+      margin: 0;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    #confirmation {
+      color: green;
+      font-size: 14px;
+      margin: 10px 0;
+    }
+    #search-bar {
+      margin: 20px;
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+    }
+    #user-form {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      row-gap: 5px;
+      background-color: #000;
+      padding: 2% 0;
+    }
+    #user-form label {
+      color: #ddd;
+    }
+    #user-form input {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+    }
+    #order-content p {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    #total-amount {
+      text-align: center;
+    }
+    .btn-details {
+      width: 100%;
+      margin-top: 10px;
+      padding: 1% 0;
+      cursor: pointer;
+    }
+    .tex {
+      color: gray;
+    }
+    #message-is-done {
+      display: none;
+       background-color: rgba(0, 236, 0, 0.955);
+       width: 100%;
+       padding: 10px;
+       text-align: center;
+       color: #000;
+    }
+.sended-is-done {
+  background-color: green;
+  color: #000;
+}
+
+
+#loader {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+  </style>
+</head>
+<body>
+<a href="add-product.html" target="_blank">اضافة منتج</a>
+
+  <h1 style="margin-top: 50px;"> قسم الخضراوات والفواكة</h1>
+
+  <div class="message-is-done" id="message-is-done" style="">تم ارسال الطلب بنجاح</div>
+  <div id="loader" style="display:none;">
+    <p>جاري إرسال الطلب... <img src="https://i.gifer.com/ZZ5H.gif" alt="loading" /></p>
+  </div>
+
+  <input type="text" id="search-bar" placeholder="ابحث عن منتج..." oninput="searchProducts()">
+  <div id="confirmation"></div>
+  <div id="products" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center;">
+    <!-- المنتجات ستُضاف هنا ديناميكيًا -->
+  </div>
+
+  <div class="cart" onclick="showCart()">🛒 <span id="cart-count">0</span></div>
+  <div id="order-details">
+    <h2>تفاصيل الطلب</h2>
+    <div id="order-content"></div>
+    <p id="total-amount"></p>
+    <form id="user-form">
+      <label>الاسم:</label>
+      <input type="text" id="user-name" required>
+      <label>العنوان:</label>
+      <input type="text" id="user-address" required>
+      <label>رقم الهاتف:</label>
+      <input type="text" id="user-phone" required>
+      <label>رقم هاتف آخر:</label>
+      <input type="text" id="user-alt-phone">
+      <label>الإيميل:</label>
+      <input type="email" id="user-email" required>
+    </form>
+    <button onclick="completeOrder()" class="btn-details">إتمام الطلب</button>
+    <button onclick="closeCart()" class="btn-details">اغلاق</button>
+  </div>
+  <!-- loader start -->
+  <div id="loader" style="display: none; text-align: center; padding: 30px;">
+    <div class="spinner-border text-success" style="width: 3rem; height: 3rem;" role="status">
+      <span class="visually-hidden">جارٍ تحميل المنتجات...</span>
+    </div>
+    <p style="margin-top: 10px; color: #28a745; font-weight: bold;">جارٍ تحميل المنتجات...</p>
+  </div>
+  <!-- message added to user -->
+  <div id="cart-message" style="display: none;"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="../js/products.js"></script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>إدارة المنتجات</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { direction: rtl; padding: 30px; }
+    .form-container { max-width: 500px; margin: auto; }
+    #loader {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+    }
+    .spinner-border {
+      width: 3rem;
+      height: 3rem;
+    }
+    .table-responsive { margin-top: 20px; }
+  </style>
+</head>
+<body>
+    <div class="mb-3">
+        <label for="category-select" class="form-label">اختر القسم</label>
+        <select id="category-select" class="form-select">
+          <option value="">اختر قسم</option>
+          <!-- سيتم إضافة الأقسام هنا ديناميكيًا -->
+        </select>
+      </div>
+      
+    <div id="message-container" class="mt-3 text-center" style="display: none;">
+        <div id="message" class="alert alert-info"></div>
+    </div>
+  
+  <div class="form-container">
+    <h2 class="mb-4 text-center">إدارة المنتجات</h2>
+    <div class="mb-3">
+      <input type="text" id="search-input" class="form-control" placeholder="ابحث باسم المنتج...">
+    </div>
+
+    <!-- loader -->
+    <div id="loader">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">جاري التحميل...</span>
+      </div>
+      <p>جاري تحميل المنتجات...</p>
+    </div>
+
+    <!-- عرض المنتجات -->
+    <div id="products-count" class="text-center mb-3">
+      <h5>عدد المنتجات: <span id="product-count-value">0</span></h5>
+      <h5>عدد الأقسام: <span id="category-count-value">0</span></h5>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered text-center align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>المعرف</th>
+            <th>اسم المنتج</th>
+            <th>السعر</th>
+            <th>الصورة</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="products-table-body">
+          <!-- سيتم إضافة المنتجات هنا -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <script>
+// إعداد Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBJkpqCGBRITqc66TQtkdQ_Rj0Jwd5uhZI",
+  authDomain: "company-23271.firebaseapp.com",
+  databaseURL: "https://company-23271-default-rtdb.firebaseio.com",
+  projectId: "company-23271",
+  storageBucket: "company-23271.firebasestorage.app",
+  messagingSenderId: "48019146673",
+  appId: "1:48019146673:web:b4f7bc91bb169c43b29f90"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const productsRef = db.ref("products");
+
+// دالة لعرض الرسائل
+function showMessage(msg, color = "green") {
+  const msgDiv = document.getElementById("message");
+  msgDiv.style.color = color;
+  msgDiv.innerText = msg;
+  document.getElementById("message-container").style.display = "block";
+}
+
+// دالة لإخفاء الرسالة
+function hideMessage() {
+  document.getElementById("message-container").style.display = "none";
+}
+
+// دالة لعرض المنتجات حسب الأقسام
+function renderProductsByCategory(products, category = null) {
+  const tbody = document.getElementById("products-table-body");
+  tbody.innerHTML = "";
+
+  if (!products || Object.keys(products).length === 0) {
+    tbody.innerHTML = "<tr><td colspan='5'>لا توجد منتجات لعرضها</td></tr>";
+    return;
+  }
+
+  // التكرار على الأقسام في المنتجات
+  Object.entries(products).forEach(([categoryName, items]) => {
+    // إذا تم اختيار قسم، سيتم عرض فقط المنتجات الخاصة بهذا القسم
+    if (category && category !== categoryName) return;
+
+    const categoryRow = document.createElement("tr");
+    categoryRow.innerHTML = `
+      <td colspan="5" class="bg-info text-white text-center">${categoryName}</td>
+    `;
+    tbody.appendChild(categoryRow);
+
+    // التكرار على المنتجات داخل كل قسم
+    Object.entries(items).forEach(([id, product]) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${id}</td>
+        <td contenteditable="true" onblur="updateField('${categoryName}', '${id}', 'name', this.innerText)">${product.name}</td>
+        <td contenteditable="true" onblur="updateField('${categoryName}', '${id}', 'price', this.innerText)">${product.price}</td>
+        <td><img src="${product.image}" width="60"></td>
+        <td>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct('${categoryName}', '${id}')">حذف</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  });
+}
+
+// دالة لحذف منتج
+function deleteProduct(category, id) {
+  if (confirm("هل أنت متأكد أنك تريد حذف هذا المنتج؟")) {
+    productsRef.child(category).child(id).remove()
+      .then(() => {
+        showMessage("تم حذف المنتج بنجاح", "green");
+        fetchAndRenderProducts();
+      })
+      .catch(() => showMessage("فشل الحذف", "red"));
+  }
+}
+
+// دالة لتحديث المنتجات عند تعديل الاسم أو السعر
+function updateField(category, id, field, value) {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    showMessage("القيمة لا يمكن أن تكون فارغة", "red");
+    fetchAndRenderProducts();
+    return;
+  }
+
+  if (field === 'price') {
+    const priceValue = parseFloat(trimmedValue);
+    if (isNaN(priceValue)) {
+      showMessage("السعر غير صالح", "red");
+      fetchAndRenderProducts();
+      return;
+    }
+    value = priceValue;
+  }
+
+  db.ref(`products/${category}/${id}/${field}`).set(value)
+    .then(() => showMessage("تم تحديث المنتج بنجاح", "green"))
+    .catch(() => showMessage("فشل التحديث", "red"));
+}
+
+let products = {}; // المتغير الذي سيخزن البيانات
+
+// دالة لجلب وعرض المنتجات
+function fetchAndRenderProducts() {
+  document.getElementById("loader").style.display = "block"; // إظهار اللودر أثناء التحميل
+
+  productsRef.on("value", (snapshot) => {
+    products = snapshot.val() || {};  // تخزين البيانات في متغير
+    renderProductsByCategory(products); // تحديث الجدول بالمنتجات الجديدة أو المعدلة
+    document.getElementById("loader").style.display = "none"; // إخفاء اللودر بعد التحميل
+
+    // تحديث عدد المنتجات
+    const productCount = Object.values(products).reduce((acc, category) => acc + Object.keys(category).length, 0);
+    document.getElementById("product-count-value").innerText = productCount;
+
+    // تحديث عدد الأقسام
+    const categoryCount = Object.keys(products).length;
+    document.getElementById("category-count-value").innerText = categoryCount;
+  });
+}
+// استماع للتغييرات في المنتجات (مثلاً عند تعديل أو حذف منتج)
+productsRef.on("child_changed", () => fetchAndRenderProducts());
+productsRef.on("child_removed", () => fetchAndRenderProducts());
+
+// البحث في قائمة المنتجات
+document.getElementById("search-input").addEventListener("input", function () {
+  const searchTerm = this.value.toLowerCase();
+  const rows = document.querySelectorAll("#products-table-body tr");
+
+  rows.forEach(row => {
+    const cells = row.children;
+    
+    // تأكد من أن الصف يحتوي على الأعمدة المطلوبة
+    if (cells.length >= 2) {
+      const id = cells[0].innerText.toLowerCase();
+      const name = cells[1].innerText.toLowerCase();
+
+      if (id.includes(searchTerm) || name.includes(searchTerm)) {
+        row.style.display = "";  // إظهار الصف
+      } else {
+        row.style.display = "none";  // إخفاء الصف
+      }
+    }
+  });
+});
+
+// الاستماع لتغييرات القسم
+document.getElementById("category-select").addEventListener("change", function() {
+  const selectedCategory = this.value;
+  // استخدم المتغير products لتصفية المنتجات حسب القسم المحدد
+  renderProductsByCategory(products, selectedCategory);
+});
+
+// استدعاء الدالة لتحميل الأقسام عند تحميل الصفحة
+// استدعاء الدالة لتحميل الأقسام
+function loadCategories() {
+  const categorySelect = document.getElementById("category-select");
+  
+  // نفترض أن لدينا بيانات الأقسام في قاعدة البيانات تحت "products"
+  const productsRef = firebase.database().ref("products");
+
+  productsRef.once("value", (snapshot) => {
+    const products = snapshot.val();
+    const categories = Object.keys(products);  // استخراج أسماء الأقسام
+
+    // تنظيف الـ select قبل إضافتها
+    categorySelect.innerHTML = '<option value="">جميع الأقسام</option>'; // تغيير النص هنا
+
+    // إضافة كل قسم إلى الـ select
+    categories.forEach(category => {
+      const option = document.createElement("option");
+      option.value = category;
+      option.innerText = category;
+      categorySelect.appendChild(option);
+    });
+  });
+}
+
+// استدعاء الدالة لتحميل الأقسام عند تحميل الصفحة
+loadCategories();
+
+// استدعاء الدالة لتحميل وعرض المنتجات عند تحميل الصفحة
+fetchAndRenderProducts();
+
+  </script>
+</body>
+</html>

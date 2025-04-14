@@ -1,0 +1,170 @@
+/* body start */
+  body {
+    background: linear-gradient(to top, #ffffff, #d3ffde);
+   }
+   /* body end */
+
+/* dark and light mod  start */
+.bg-light-edit {
+    background: linear-gradient(to top, #f0fff0, #d4edda);
+
+}
+.bg-dark-edit {
+    background: linear-gradient(to top, #FFFFFF, #000);
+
+}
+/* dark and light mod  end */
+
+
+.navbar-nav {
+    column-gap: 5px;
+}
+   .container-page.my-5 {
+    margin: 0 !important;
+   }
+
+   section {
+    background-color: transparent !important;
+   }
+   .d-flex.justify-content-between.mt-4 {
+    flex-wrap: wrap ;
+    row-gap: 5px;
+   }
+.accordion-button.text-success {
+    border-radius: 14px !important;
+}
+.my-5.new-edit-slider {
+    margin-top: 70px !important;
+}
+
+  /* تأثير عند التمرير على الصورة */
+  .customer-image {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.customer-image:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* إضافة تأثير عند التمرير على النجوم */
+.text-warning:hover {
+    color: #f1c40f;
+    cursor: pointer;
+}
+
+/* تنسيق النصوص بشكل أفضل */
+.carousel-item .text-muted {
+    font-size: 0.9rem;
+}
+
+/* إضافة تأثيرات على السلايدر */
+.carousel-inner {
+    transition: transform 0.5s ease-in-out;
+}
+
+/* تنسيق زر الإعجاب */
+.btn-outline-success {
+    border: 2px solid #28a745;
+    color: #28a745;
+    transition: all 0.3s;
+}
+
+.btn-outline-success:hover {
+    background-color: #28a745;
+    color: #fff;
+}
+
+/* تنسيق زر "لم يعجبني" */
+.btn-outline-danger {
+    border: 2px solid #dc3545;
+    color: #dc3545;
+    transition: all 0.3s;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+/* تنسيق حقل التعليق */
+.form-control {
+    border-radius: 20px;
+    border: 1px solid #ccc;
+}
+
+/* تنسيق النموذج */
+form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.form-control {
+    background-color: #2c3e50;
+    color: #ecf0f1;
+    border: 1px solid #34495e;
+}
+
+.form-label {
+    font-size: 1rem;
+    color: #ecf0f1;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border: none;
+    color: white;
+    border-radius: 20px;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.cerator-footer {
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+}
+
+
+.scroll-buttons button {
+    position: fixed;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.scroll-buttons button:hover {
+    background-color: #218838;
+}
+.down {
+    left: 20px ;
+}
+.up {
+    right: 20px;
+}
+
+
+.customer-reviews.py-5.text-light ,
+.customer-reviews.py-5.text-light .container h3,
+.about-us.py-5.text-light  {
+    color: #218838 !important;
+}
+
+/* how to order start */
+.how-to-order .container .row div ,
+.why-us .container .row div {
+    margin-top: 10px !important;
+}
+.contact-us .container .row {
+    row-gap: 10px;
+    /* flex-direction: column-reverse; */
+}
+/* how to order end */

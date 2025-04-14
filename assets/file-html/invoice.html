@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>فاتورة العميل</title>
+  <!-- تحميل Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* تخصيص الفاتورة للطباعة */
+    body {
+        direction: rtl;
+    }
+@media print {
+  body {
+    font-family: 'Arial', sans-serif;
+    direction: rtl;
+    /* font-weight: bold; */
+  }
+  .invoice-container {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #000;
+    background-color: #fff;
+    border-radius: 0;
+    margin: 0;
+    
+  }
+  .invoice-title {
+    font-size: 24px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .table th, .table td {
+    text-align: center;
+    font-size: 18px;
+    border: 2px solid #000;
+  }
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+  }
+  .total-row {
+    background-color: #f8f9fa;
+    font-weight: bold;
+  }
+  .invoice-footer {
+    text-align: center;
+    margin-top: 20px;
+  }
+  .invoice-footer button {
+    display: none; /* إخفاء زر الطباعة في الطباعة */
+  }
+}
+
+/* تنسيق العرض العادي للفاتورة */
+.invoice-container {
+  margin-top: 30px;
+  padding: 20px;
+  border: 2px solid #ddd;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  font-size: 18px;
+}
+
+.invoice-title {
+  text-align: center;
+  font-size: 30px;
+  margin-bottom: 20px;
+}
+
+.table th, .table td {
+  text-align: center;
+  font-size: 18px;
+  border: 2px solid #ddd;
+}
+
+.total-row {
+  font-weight: bold;
+  background-color: #f1f1f1;
+}
+
+.invoice-footer {
+  margin-top: 30px;
+  text-align: center;
+}
+
+/* تخصيص إدخال خدمة التوصيل */
+.delivery-fee {
+  width: 100px;
+}
+
+.delivery-row td {
+  font-size: 20px;
+}
+
+/* تخصيص اللودر */
+.loader {
+  border: 8px solid #f3f3f3; /* Light grey */
+  border-top: 8px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 2s linear infinite;
+  margin: 0 auto;
+  text-align: center;
+  padding-top: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <div class="invoice-container">
+      <div class="invoice-title">فاتورة العميل</div>
+
+      <!-- لودر أثناء تحميل البيانات -->
+      <div id="loader" class="loader"></div>
+
+      <div id="invoice-body"></div>
+
+      <div class="invoice-footer">
+        <button class="btn btn-primary" onclick="window.print()">طباعة الفاتورة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- تحميل Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <script type="module">
+    // إعداد Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBJkpqCGBRITqc66TQtkdQ_Rj0Jwd5uhZI",
+      authDomain: "company-23271.firebaseapp.com",
+      databaseURL: "https://company-23271-default-rtdb.firebaseio.com",
+      projectId: "company-23271",
+      storageBucket: "company-23271.firebasestorage.app",
+      messagingSenderId: "48019146673",
+      appId: "1:48019146673:web:b4f7bc91bb169c43b29f90"
+    };
+
+    // تهيئة Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // الحصول على ID العميل من الرابط
+    const urlParams = new URLSearchParams(window.location.search);
+    const customerId = urlParams.get('customerId');
+    const customerRef = db.ref(`customers/${customerId}`);
+
+    // الحصول على بيانات العميل وعرضها
+    customerRef.once('value', snapshot => {
+      const customer = snapshot.val();
+
+      // حساب عدد الأصناف
+      const totalItems = Object.keys(customer.order).length;
+
+      // عرض الفاتورة مع إمكانية تعديل خدمة التوصيل
+      const invoiceBody = `
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th colspan="2">بيانات العميل</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>رقم العملية:</strong></td>
+              <td>${customerId}</td> <!-- إضافة رقم العملية -->
+            </tr>
+            <tr>
+              <td><strong>العميل:</strong></td>
+              <td>${customer.name}</td>
+            </tr>
+            <tr>
+              <td><strong>العنوان:</strong></td>
+              <td>${customer.address}</td>
+            </tr>
+            <tr>
+              <td><strong>رقم الهاتف:</strong></td>
+              <td>${customer.phone}</td>
+            </tr>
+            ${customer.altPhone ? `
+              <tr>
+                <td><strong>رقم الهاتف الآخر:</strong></td>
+                <td>${customer.altPhone}</td>
+              </tr>
+            ` : ''}
+            <tr>
+              <td><strong>التاريخ:</strong></td>
+              <td>${new Date(customer.timestamp).toLocaleDateString()}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4>الطلبات</h4>
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>اسم المنتج</th>
+              <th>الكمية</th>
+              <th>السعر</th>
+              <th>الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.keys(customer.order).map(orderId => {
+              const order = customer.order[orderId];
+              return `
+                <tr>
+                  <td>${order.name}</td>
+                  <td>${order.quantity}</td>
+                  <td>${order.price} جنيه</td>
+                  <td>${order.total} جنيه</td>
+                </tr>
+              `;
+            }).join('')}
+            <tr class="total-row">
+              <td colspan="3" class="text-right"><strong>إجمالي عدد الأصناف:</strong></td>
+              <td><strong>${totalItems}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- إضافة خدمة التوصيل مع إمكانية تعديل المبلغ -->
+        <table class="table table-bordered">
+          <tbody>
+            <tr class="delivery-row">
+              <td><strong>خدمة التوصيل:</strong></td>
+              <td>
+                <input type="number" class="form-control delivery-fee" id="delivery-fee" value="35" min="0">
+              </td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="3" class="text-right"><strong>الإجمالي الكلي (+التوصيل):</strong></td>
+              <td><strong id="final-total">${customer.totalAmount + 35}</strong> جنيه</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+
+      // عرض الفاتورة في العنصر المناسب
+      document.getElementById('invoice-body').innerHTML = invoiceBody;
+
+      // إخفاء اللودر بعد تحميل الفاتورة
+      document.getElementById('loader').style.display = 'none';
+
+      // إضافة حدث لتحديث الإجمالي عند تعديل قيمة التوصيل
+      document.getElementById('delivery-fee').addEventListener('input', function() {
+        const deliveryFee = parseFloat(this.value) || 0;
+        const finalTotal = customer.totalAmount + deliveryFee;
+        document.getElementById('final-total').innerText = finalTotal + ' جنيه';
+      });
+    });
+  </script>
+
+  <!-- تحميل JavaScript الخاص بـ Bootstrap -->
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+</body>
+</html>

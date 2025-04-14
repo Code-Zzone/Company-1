@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>عرض المنتجات</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+</head>
+<body>
+  <div class="container mt-5">
+    <button id="cart-toggle" class="btn btn-warning mb-3 position-relative" onclick="toggleCart()">
+      🛒 عرض السلة 
+      <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+        0
+      </span>
+    </button>
+    
+    <div id="cart-details" class="card p-3 d-none">
+      <h5 class="mb-3">تفاصيل السلة:</h5>
+      <ul id="cart-items" class="list-group mb-3"></ul>
+      <h6 id="cart-total"></h6>
+    
+      <!-- بيانات العميل -->
+      <div id="customer-info" class="mt-4">
+        <h5>بيانات العميل</h5>
+        <form id="customer-form">
+          <div class="mb-3">
+            <label for="customer-name" class="form-label">الاسم</label>
+            <input type="text" class="form-control" id="customer-name" required>
+          </div>
+          <div class="mb-3">
+            <label for="customer-phone" class="form-label">رقم الهاتف</label>
+            <input type="tel" class="form-control" id="customer-phone" required>
+          </div>
+          <div class="mb-3">
+            <label for="customer-email" class="form-label">البريد الإلكتروني</label>
+            <input type="email" class="form-control" id="customer-email" required>
+          </div>
+          <div class="mb-3">
+            <label for="customer-alt-phone" class="form-label">رقم الهاتف البديل</label>
+            <input type="tel" class="form-control" id="customer-alt-phone">
+          </div>
+          <div class="mb-3">
+            <label for="customer-address" class="form-label">العنوان</label>
+            <textarea class="form-control" id="customer-address" rows="3" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-success">إتمام العملية</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+
+  <div class="container mt-4">
+    <label for="category-select" class="form-label">اختر القسم:</label>
+    <select id="category-select" class="form-select mb-4">
+      <option value="all">كل الأقسام</option>
+    </select>
+  </div>
+
+  <div id="loader" class="text-center" style="display: none;">
+    <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+  </div>
+
+  <div id="products" class="container mt-5">
+    <div class="row" id="product-list"></div>
+  </div>
+
+  <div id="added-message" class="alert alert-success alert-dismissible fade show" role="alert" style="display:none; position: fixed; bottom: 10px; right: 10px;">
+    تم إضافة المنتج إلى السلة!
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBJkpqCGBRITqc66TQtkdQ_Rj0Jwd5uhZI",
+      authDomain: "company-23271.firebaseapp.com",
+      databaseURL: "https://company-23271-default-rtdb.firebaseio.com",
+      projectId: "company-23271",
+      storageBucket: "company-23271.firebasestorage.app",
+      messagingSenderId: "48019146673",
+      appId: "1:48019146673:web:b4f7bc91bb169c43b29f90"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database(app);
+
+    function loadProductsFromDatabase() {
+      const loader = document.getElementById('loader');
+      const productList = document.getElementById('product-list');
+      const categorySelect = document.getElementById('category-select');
+      loader.style.display = 'block';
+      const categorySections = {};
+
+      db.ref('products').on('value', (snapshot) => {
+        const data = snapshot.val();
+        productList.innerHTML = '';
+        categorySelect.innerHTML = '<option value="all">كل الأقسام</option>';
+
+        if (data) {
+          Object.keys(data).forEach(category => {
+            const sectionDiv = document.createElement('div');
+            sectionDiv.classList.add('mb-5');
+            sectionDiv.setAttribute('data-category', category);
+
+            const categoryHeader = document.createElement('div');
+            categoryHeader.classList.add('d-flex', 'justify-content-between', 'align-items-center', 'mb-2');
+            const categoryBtn = document.createElement('button');
+            categoryBtn.classList.add('btn', 'btn-outline-success');
+            categoryBtn.textContent = category;
+            categoryBtn.onclick = () => window.location.href = `category.html?name=${encodeURIComponent(category)}`;
+            categoryHeader.appendChild(categoryBtn);
+
+            const showMoreBtn = document.createElement('button');
+            showMoreBtn.classList.add('btn', 'btn-sm', 'btn-secondary');
+            showMoreBtn.textContent = 'عرض المزيد';
+            showMoreBtn.onclick = categoryBtn.onclick;
+            categoryHeader.appendChild(showMoreBtn);
+            sectionDiv.appendChild(categoryHeader);
+
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = 'ابحث في هذا القسم...';
+            searchInput.classList.add('form-control', 'mb-3');
+            sectionDiv.appendChild(searchInput);
+
+            const sliderContainer = document.createElement('div');
+            sliderContainer.classList.add('position-relative');
+            const slider = document.createElement('div');
+            slider.classList.add('d-flex', 'overflow-auto', 'px-2');
+            slider.style.scrollBehavior = 'smooth';
+            slider.style.gap = '1rem';
+            slider.style.padding = '1rem 0';
+
+            const sectionCards = [];
+            const products = Array.isArray(data[category]) ? data[category] : Object.values(data[category]);
+            products.forEach(product => {
+              const productCard = document.createElement('div');
+              productCard.style.minWidth = '300px';
+              productCard.style.maxWidth = '300px';
+              productCard.classList.add('flex-shrink-0');
+              productCard.innerHTML = `
+                <div class="card h-100">
+                  <img src="${product.image}" class="card-img-top" alt="${product.name}">
+                  <div class="card-body">
+                    <h5 class="card-title">${product.name}</h5>
+                    <p class="card-text">السعر: ${product.price} جنيه</p>
+                    <div class="mb-2">
+                      <label class="form-label">الكمية:</label>
+                      <input type="number" min="1" max="20" value="1" class="form-control form-control-sm" id="qty-${product.name}">
+
+                    </div>
+                    <button class="btn btn-primary" onclick='addToCart(${JSON.stringify(product)})'>اضف الى السلة</button>
+
+                  </div>
+                </div>`;
+              slider.appendChild(productCard);
+              sectionCards.push({ element: productCard, name: product.name });
+            });
+
+            const leftBtn = document.createElement('button');
+            leftBtn.classList.add('btn', 'btn-light', 'position-absolute', 'top-50', 'start-0', 'translate-middle-y', 'shadow');
+            leftBtn.innerHTML = '&larr;';
+            leftBtn.style.zIndex = '2';
+            leftBtn.onclick = () => slider.scrollBy({ left: -1000, behavior: 'smooth' });
+
+            const rightBtn = document.createElement('button');
+            rightBtn.classList.add('btn', 'btn-light', 'position-absolute', 'top-50', 'end-0', 'translate-middle-y', 'shadow');
+            rightBtn.innerHTML = '&rarr;';
+            rightBtn.style.zIndex = '2';
+            rightBtn.onclick = () => slider.scrollBy({ left: 1000, behavior: 'smooth' });
+
+            searchInput.addEventListener('input', () => {
+              const value = searchInput.value.toLowerCase();
+              sectionCards.forEach(card => {
+                card.element.style.display = card.name.toLowerCase().includes(value) ? 'block' : 'none';
+              });
+            });
+
+            sliderContainer.appendChild(leftBtn);
+            sliderContainer.appendChild(slider);
+            sliderContainer.appendChild(rightBtn);
+            sectionDiv.appendChild(sliderContainer);
+            productList.appendChild(sectionDiv);
+
+            categorySections[category] = sectionDiv;
+
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            categorySelect.appendChild(option);
+          });
+
+          categorySelect.addEventListener('change', () => {
+            const selected = categorySelect.value;
+            loader.style.display = 'block';
+            Object.keys(categorySections).forEach(cat => {
+              categorySections[cat].style.display = (selected === 'all' || selected === cat) ? 'block' : 'none';
+            });
+            setTimeout(() => loader.style.display = 'none', 500);
+          });
+        }
+        loader.style.display = 'none';
+      }, error => console.error('Error loading products: ', error));
+    }
+
+    const cart = [];
+
+    function addToCart(product) {
+  const qtyInput = document.getElementById(`qty-${product.name}`);
+  const quantity = parseInt(qtyInput.value);
+
+  if (isNaN(quantity) || quantity <= 0) return;
+
+  const existingItem = cart.find(item => item.name === product.name);
+  if (existingItem) {
+    existingItem.quantity += quantity;
+  } else {
+    // لا نضيف رابط الصورة الآن
+    cart.push({ name: product.name, price: product.price, quantity });
+  }
+
+  showAddedMessage();
+  updateCartUI();
+}
+
+function handleOrderSubmission(event) {
+  event.preventDefault();
+
+  const customerName = document.getElementById('customer-name').value;
+  const customerPhone = document.getElementById('customer-phone').value;
+  const customerEmail = document.getElementById('customer-email').value;
+  const customerAltPhone = document.getElementById('customer-alt-phone').value;
+  const customerAddress = document.getElementById('customer-address').value;
+  const customerNotes = document.getElementById('customer-notes').value;
+
+  if (!customerName || !customerPhone || !customerEmail || !customerAddress) {
+    alert("يرجى ملء جميع البيانات الأساسية");
+    return;
+  }
+
+  const orderID = generateOrderID();
+
+  const order = {
+    orderID: orderID,
+    customerName: customerName,
+    customerPhone: customerPhone,
+    customerEmail: customerEmail,
+    customerAltPhone: customerAltPhone,
+    customerAddress: customerAddress,
+    customerNotes: customerNotes,
+    items: cart.map(item => ({
+      name: item.name, 
+      price: item.price, 
+      quantity: item.quantity
+    })), // تخزين المنتج بدون رابط الصورة
+    totalAmount: calculateTotal(),
+    status: "قيد المعالجة",
+    date: new Date().toISOString()
+  };
+
+  db.ref('orders/' + orderID).set(order, (error) => {
+    if (error) {
+      console.error("Error saving order: ", error);
+    } else {
+      alert("تم تقديم الطلب بنجاح!");
+      resetCart();
+      resetCustomerForm();
+    }
+  });
+}
+
+
+    function showAddedMessage() {
+      const message = document.getElementById('added-message');
+      message.style.display = 'block';
+      setTimeout(() => {
+        message.style.display = 'none';
+      }, 3000);
+    }
+
+    function removeFromCart(item) {
+      const index = cart.findIndex(cartItem => cartItem.name === item.name && cartItem.price === item.price);
+      if (index > -1) {
+        cart.splice(index, 1);
+        updateCartUI();
+      }
+    }
+
+    function updateCartUI() {
+  const cartItems = document.getElementById("cart-items");
+  const cartTotal = document.getElementById("cart-total");
+  const cartCount = document.getElementById("cart-count");
+
+  cartItems.innerHTML = '';
+  let total = 0;
+
+  // عد المنتجات الفريدة فقط
+  let totalProductCount = 0;
+
+  cart.forEach(item => {
+    const subtotal = item.quantity * item.price;
+    total += subtotal;
+    
+    // هنا نقوم بعد المنتج فقط دون النظر إلى الكمية
+    totalProductCount++;
+
+    const li = document.createElement("li");
+    li.className = "list-group-item";
+    li.textContent = `${item.name} - ${item.quantity} × ${item.price} = ${subtotal.toFixed(2)} جنيه`;
+
+    const qtyInput = document.createElement("input");
+    qtyInput.type = "number";
+    qtyInput.min = 1;
+    qtyInput.value = item.quantity;
+    qtyInput.classList.add("form-control", "form-control-sm", "d-inline", "w-auto", "ms-2");
+    qtyInput.addEventListener('change', (e) => {
+      updateQuantityInCart(item, parseInt(e.target.value));
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = "حذف";
+    deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm', 'ms-3');
+    deleteBtn.onclick = () => removeFromCart(item);
+
+    li.appendChild(qtyInput);
+    li.appendChild(deleteBtn);
+    cartItems.appendChild(li);
+  });
+
+  cartTotal.textContent = `إجمالي الطلب: ${total.toFixed(2)} جنيه`;
+
+  // تحديث العد في الزر لعدد المنتجات فقط
+  cartCount.textContent = totalProductCount;
+}
+
+    function updateQuantityInCart(item, newQuantity) {
+      const existing = cart.find(cartItem => cartItem.name === item.name && cartItem.price === item.price);
+      if (existing && newQuantity > 0) {
+        existing.quantity = newQuantity;
+      } else {
+        alert("الكمية يجب أن تكون أكبر من 0");
+      }
+      updateCartUI();
+    }
+
+    function toggleCart() {
+      const cartDetails = document.getElementById("cart-details");
+      cartDetails.classList.toggle("d-none");
+    }
+
+    function handleOrderSubmission(event) {
+  event.preventDefault();
+
+  const customerName = document.getElementById('customer-name').value;
+  const customerPhone = document.getElementById('customer-phone').value;
+  const customerEmail = document.getElementById('customer-email').value;
+  const customerAltPhone = document.getElementById('customer-alt-phone').value;
+  const customerAddress = document.getElementById('customer-address').value;
+
+  if (!customerName || !customerPhone || !customerEmail || !customerAddress) {
+    alert("يرجى ملء جميع البيانات الأساسية");
+    return;
+  }
+
+  // الحصول على الـ ID الفريد للعميل
+  generateCustomerID().then(customerID => {
+    const timestamp = new Date().toISOString();
+
+    const orderDetails = cart.map((item, index) => ({
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      total: item.quantity * item.price
+    }));
+
+    const totalAmount = calculateTotal();
+
+    const customerOrder = {
+      address: customerAddress,
+      altPhone: customerAltPhone,
+      email: customerEmail,
+      name: customerName,
+      order: orderDetails,
+      phone: customerPhone,
+      timestamp: timestamp,
+      totalAmount: totalAmount
+    };
+
+    // تخزين البيانات في Firebase باستخدام الـ ID الفريد
+    db.ref('customers/' + customerID).set(customerOrder, (error) => {
+      if (error) {
+        console.error("Error saving order: ", error);
+      } else {
+        alert("تم تقديم الطلب بنجاح!");
+        resetCart();
+        resetCustomerForm();
+      }
+    });
+  });
+}
+
+// دالة لتوليد ID فريد للعميل (يمكنك تخصيص هذه الدالة حسب احتياجاتك)
+function generateCustomerID() {
+  // نحاول الحصول على آخر ID من قاعدة البيانات
+  return db.ref('customers').once('value').then(snapshot => {
+    const data = snapshot.val();
+    let lastID = 0; // قيمة ابتدائية إذا كانت قاعدة البيانات فارغة
+
+    if (data) {
+      // إذا كانت قاعدة البيانات تحتوي على بيانات
+      const ids = Object.keys(data); // الحصول على كل المفاتيح (IDs)
+      lastID = ids.map(id => parseInt(id)).sort((a, b) => a - b).pop(); // ترتيب IDs بشكل تصاعدي واختيار الأخير
+    }
+
+    // توليد ID التالي بناءً على الـ lastID
+    const newID = (lastID + 1).toString().padStart(5, '0'); // توليد ID جديد يبدأ من 00001
+    return newID;
+  });
+}
+
+function calculateTotal() {
+  return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+}
+function resetCart() {
+  cart.length = 0;
+  updateCartUI();
+}
+function resetCustomerForm() {
+  document.getElementById('customer-form').reset();
+}
+
+    document.getElementById('customer-form').addEventListener('submit', handleOrderSubmission);
+
+    window.onload = loadProductsFromDatabase;
+  </script>
+</body>
+</html>
