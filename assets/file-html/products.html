@@ -141,20 +141,19 @@
               productCard.style.maxWidth = '300px';
               productCard.classList.add('flex-shrink-0');
               productCard.innerHTML = `
-                <div class="card h-100">
-                  <img src="${product.image}" class="card-img-top" alt="${product.name}">
-                  <div class="card-body">
-                    <h5 class="card-title">${product.name}</h5>
-                    <p class="card-text">السعر: ${product.price} جنيه</p>
-                    <div class="mb-2">
-                      <label class="form-label">الكمية:</label>
-                      <input type="number" min="1" max="20" value="1" class="form-control form-control-sm" id="qty-${product.name}">
-
-                    </div>
-                    <button class="btn btn-primary" onclick='addToCart(${JSON.stringify(product)})'>اضف الى السلة</button>
-
-                  </div>
-                </div>`;
+  <div class="card h-100">
+    <img src="${product.image}" class="card-img-top" alt="${product.name}">
+    <div class="card-body">
+      <h5 class="card-title">${product.name}</h5>
+      <p class="card-text">السعر: ${product.price} جنيه</p>
+      <div class="mb-2">
+        <label class="form-label">الكمية:</label>
+        <input type="number" min="1" max="20" value="1" class="form-control form-control-sm" id="qty-${product.name}">
+      </div>
+      <button class="btn btn-primary mb-2" onclick='addToCart(${JSON.stringify(product)})'>اضف الى السلة</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick='viewProduct(${JSON.stringify(product)})'>عرض التفاصيل</button>
+    </div>
+  </div>`;
               slider.appendChild(productCard);
               sectionCards.push({ element: productCard, name: product.name });
             });
@@ -429,6 +428,10 @@ function resetCart() {
 }
 function resetCustomerForm() {
   document.getElementById('customer-form').reset();
+}
+function viewProduct(product) {
+  localStorage.setItem('selectedProduct', JSON.stringify(product));
+  window.location.href = 'product.html';
 }
 
     document.getElementById('customer-form').addEventListener('submit', handleOrderSubmission);
