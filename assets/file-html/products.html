@@ -86,7 +86,7 @@
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database(app);
 
-    function loadProductsFromDatabase() {
+       function loadProductsFromDatabase() {
   const loader = document.getElementById('loader');
   const productList = document.getElementById('product-list');
   const categorySelect = document.getElementById('category-select');
@@ -106,6 +106,7 @@
 
         const categoryHeader = document.createElement('div');
         categoryHeader.classList.add('d-flex', 'justify-content-between', 'align-items-center', 'mb-2');
+
         const categoryBtn = document.createElement('button');
         categoryBtn.classList.add('btn', 'btn-outline-success');
         categoryBtn.textContent = category;
@@ -117,6 +118,7 @@
         showMoreBtn.textContent = 'عرض المزيد';
         showMoreBtn.onclick = categoryBtn.onclick;
         categoryHeader.appendChild(showMoreBtn);
+
         sectionDiv.appendChild(categoryHeader);
 
         const searchInput = document.createElement('input');
@@ -127,16 +129,17 @@
 
         const sliderContainer = document.createElement('div');
         sliderContainer.classList.add('position-relative');
+
         const slider = document.createElement('div');
         slider.classList.add('d-flex', 'overflow-auto', 'px-2');
         slider.style.scrollBehavior = 'smooth';
         slider.style.gap = '1rem';
         slider.style.padding = '1rem 0';
 
-        const sectionCards = [];
         const products = Array.isArray(data[category]) ? data[category] : Object.values(data[category]);
+
         products.forEach(product => {
-          const productCategory = product.category || 'غير مخزن'; // تحديد القسم أو عرض "غير مخزن"
+          const productCategory = product.category || 'غير مخزن';
           const productCard = document.createElement('div');
           productCard.style.minWidth = '300px';
           productCard.style.maxWidth = '300px';
@@ -148,7 +151,7 @@
                 <h5 class="card-title">${product.name}</h5>
                 <p class="card-text">${product.description || 'منتجاتنا طازجة يومياً'}</p>
                 <p class="card-text">السعر: ${product.price} جنيه</p>
-                <p class="card-text"><strong>القسم: </strong>${productCategory}</p> <!-- عرض القسم -->
+                <p class="card-text"><strong>القسم: </strong>${productCategory}</p>
                 <div class="mb-2">
                   <label class="form-label">الكمية:</label>
                   <input type="number" min="1" max="20" value="1" class="form-control form-control-sm" id="qty-${product.name}">
@@ -158,7 +161,6 @@
               </div>
             </div>`;
           slider.appendChild(productCard);
-          sectionCards.push({ element: productCard, name: product.name });
         });
 
         const leftBtn = document.createElement('button');
@@ -176,12 +178,30 @@
         sliderContainer.appendChild(leftBtn);
         sliderContainer.appendChild(slider);
         sliderContainer.appendChild(rightBtn);
+
         sectionDiv.appendChild(sliderContainer);
 
+        // حفظ القسم في الكائن
         categorySections[category] = sectionDiv;
+
+        // إضافة الخيار للقائمة المنسدلة
         categorySelect.innerHTML += `<option value="${category}">${category}</option>`;
+
+        // إضافة القسم للصفحة
         productList.appendChild(sectionDiv);
       });
+
+      // ✨ هنا نضيف حدث الفلترة على السيليكت
+      categorySelect.onchange = function () {
+        const selectedCategory = this.value;
+        Object.keys(categorySections).forEach(cat => {
+          if (selectedCategory === 'all' || cat === selectedCategory) {
+            categorySections[cat].style.display = '';
+          } else {
+            categorySections[cat].style.display = 'none';
+          }
+        });
+      };
     }
 
     loader.style.display = 'none';
@@ -190,6 +210,7 @@
     loader.style.display = 'none';
   });
 }
+
 
 
     const cart = [];
